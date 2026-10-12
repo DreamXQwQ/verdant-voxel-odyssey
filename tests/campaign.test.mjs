@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {World,Progress,validateSave,drop} from '../dist/core.js';
+
+test('a fresh generated world supplies all resources for the full campaign',()=>{
+ const w=new World(),p=new Progress();
+ function collect(id,count){let collected=0;for(let x=-55;x<55&&collected<count;x++)for(let z=-55;z<55&&collected<count;z++)for(let y=1;y<35&&collected<count;y++){if(w.get(x,y,z)!==id)continue;const exposed=[[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]].some(([a,b,c])=>!w.get(x+a,y+b,z+c));if(exposed){w.set(x,y,z,0,true);p.add(drop[id]);collected++}}assert.equal(collected,count,'resource '+id+' must be obtainable');}
+ collect(4,12);assert.equal(p.stage,1);collect(3,11);assert.equal(p.craft('pick'),true);assert.equal(p.stage,2);assert.equal(p.craft('furnace'),true);collect(7,5);for(let i=0;i<5;i++)assert.equal(p.craft('iron'),true);assert.equal(p.stage,3);assert.equal(p.craft('sword'),true);assert.equal(p.stage,4);collect(8,3);assert.equal(p.craft('sigil'),true);assert.equal(p.stage,5);assert.equal(p.enter(),true);assert.equal(p.stage,6);assert.equal(p.inventory.sigil,0);p.won=true;p.advance();assert.equal(p.stage,7);
+ const s={version:1,progress:p.serialize(),seed:w.seed,position:{x:0,y:1,z:18},edits:w.edits};validateSave(s);const restored=new World(s.seed);restored.applyEdits(s.edits);assert.deepEqual(restored.data,w.data);assert.equal(new Progress(s.progress).stage,7);
+});
+test('crafting cannot consume missing resources or bypass furnace requirement',()=>{const p=new Progress();const before=JSON.stringify(p.serialize());assert.equal(p.craft('sword'),false);assert.equal(p.craft('unknown'),false);assert.equal(JSON.stringify(p.serialize()),before);p.add('ore');p.add('wood');assert.equal(p.craft('iron'),false);assert.equal(p.enter(),false)});
+test('all shrines provide reachable water-free crystals and gate has a clear opening',()=>{const w=new World();for(const [x,z] of [[-24,3],[24,-15],[-20,-30]]){let crystals=0;for(let dx=-1;dx<=1;dx++)for(let y=1;y<39;y++)if(w.get(x+dx,y,z)===8){crystals++;assert.equal(w.get(x+dx,y+1,z),0)}assert.equal(crystals,3)}assert.equal(w.get(0,w.gateY+3,-30),0);assert.equal(w.get(2,w.gateY+3,-30),12);assert.equal(w.get(-8,w.top(-8,24),24),0)});
+test('malformed and dangerous save values are rejected',()=>{const base={version:1,progress:new Progress().serialize(),position:{x:0,y:1,z:1},edits:{}};for(const mutate of [s=>s.progress.health=-99,s=>s.progress.hunger=1000,s=>s.progress.stage=8,s=>s.progress.inventory=null,s=>s.position.x='invalid',s=>s.progress.inventory.food=-1]){const s=structuredClone(base);mutate(s);assert.throws(()=>validateSave(s))}assert.equal(validateSave(base),base)});

@@ -1,0 +1,12 @@
+VERDANT / 原野纪元
+Original independent voxel adventure. Not affiliated with Mojang or Microsoft.
+
+Rendering: Three.js r170, MIT License, https://github.com/mrdoob/three.js
+See vendor/THREE-LICENSE.txt.
+
+Ground diffuse overlay: Forest Leaves 02, Poly Haven, CC0.
+https://polyhaven.com/a/forest_leaves_02
+https://polyhaven.com/license
+
+Voxel textures, terrain, characters, interfaces, procedural audio and game logic: original procedural work for this project.
+No external runtime resource requests are required.
